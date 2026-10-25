@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.Bourse" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/bourse_primary</item>
+        <item name="colorPrimaryContainer">@color/bourse_primary_light</item>
+
+        <item name="android:colorBackground">@color/bourse_background</item>
+        <item name="android:navigationBarColor">@color/bourse_background</item>
+        <item name="android:statusBarColor">@color/bourse_background</item>
+
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+</resources>

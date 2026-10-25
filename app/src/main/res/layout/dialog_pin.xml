@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/bourse_surface"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Confirm Trade"
+        android:textColor="@color/bourse_text_primary"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Enter your transaction PIN to continue"
+        android:textColor="@color/bourse_text_secondary"
+        android:textSize="14sp" />
+
+    <EditText
+        android:id="@+id/etPin"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="20dp"
+        android:autofillHints="password"
+        android:background="@drawable/bg_input"
+        android:gravity="center"
+        android:hint="• • • •"
+        android:inputType="numberPassword"
+        android:maxLength="4"
+        android:textColor="@color/bourse_text_primary"
+        android:textColorHint="@color/bourse_text_tertiary"
+        android:textSize="20sp"
+        android:letterSpacing="0.5" />
+
+    <TextView
+        android:id="@+id/tvPinError"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="Incorrect PIN"
+        android:textColor="@color/bourse_sell"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+</LinearLayout>

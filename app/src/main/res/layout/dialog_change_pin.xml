@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/bourse_surface"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/tvChangePinTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Change Transaction PIN"
+        android:textColor="@color/bourse_text_primary"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvCurrentPinLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Current 4-Digit PIN"
+        android:textColor="@color/bourse_text_secondary"
+        android:textSize="12sp" />
+
+    <EditText
+        android:id="@+id/etCurrentPin"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="6dp"
+        android:autofillHints="password"
+        android:background="@drawable/bg_input"
+        android:gravity="center"
+        android:inputType="numberPassword"
+        android:maxLength="4"
+        android:textColor="@color/bourse_text_primary"
+        android:textColorHint="@color/bourse_text_tertiary"
+        android:textSize="18sp"
+        android:letterSpacing="0.5" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="New 4-Digit PIN"
+        android:textColor="@color/bourse_text_secondary"
+        android:textSize="12sp" />
+
+    <EditText
+        android:id="@+id/etNewPin"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="6dp"
+        android:autofillHints="password"
+        android:background="@drawable/bg_input"
+        android:gravity="center"
+        android:hint="• • • •"
+        android:inputType="numberPassword"
+        android:maxLength="4"
+        android:textColor="@color/bourse_text_primary"
+        android:textColorHint="@color/bourse_text_tertiary"
+        android:textSize="18sp"
+        android:letterSpacing="0.5" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Confirm New PIN"
+        android:textColor="@color/bourse_text_secondary"
+        android:textSize="12sp" />
+
+    <EditText
+        android:id="@+id/etConfirmPin"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="6dp"
+        android:autofillHints="password"
+        android:background="@drawable/bg_input"
+        android:gravity="center"
+        android:hint="• • • •"
+        android:inputType="numberPassword"
+        android:maxLength="4"
+        android:textColor="@color/bourse_text_primary"
+        android:textColorHint="@color/bourse_text_tertiary"
+        android:textSize="18sp"
+        android:letterSpacing="0.5" />
+
+    <TextView
+        android:id="@+id/tvPinMatchError"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="PINs do not match or invalid length"
+        android:textColor="@color/bourse_sell"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+</LinearLayout>
