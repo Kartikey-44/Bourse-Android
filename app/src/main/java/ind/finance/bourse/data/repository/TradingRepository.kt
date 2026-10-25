@@ -4,6 +4,7 @@ import com.google.gson.JsonParser
 import ind.finance.bourse.data.local.TokenManager
 import ind.finance.bourse.data.model.TradeRequest
 import ind.finance.bourse.data.model.TransactionDto
+import android.util.Log
 import ind.finance.bourse.data.remote.TradingServiceApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

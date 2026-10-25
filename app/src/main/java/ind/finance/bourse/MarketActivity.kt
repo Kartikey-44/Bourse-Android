@@ -40,7 +40,6 @@ class MarketActivity : AppCompatActivity() {
         setupSearch()
         setupObservers()
         setupBottomNavigation()
-
     }
 
     override fun onResume() {
@@ -73,13 +72,18 @@ class MarketActivity : AppCompatActivity() {
                 }
                 is MarketState.Success -> {
                     binding.progressBar.visibility = View.GONE
-                    currentStockList = state.stocks.map { dto ->
+                    currentStockList = state.stocks.map { (dto, trend) ->
+                        val changeText = when (trend?.trim()?.uppercase()) {
+                            "UP" -> "▲ UP"
+                            "DOWN" -> "▼ DOWN"
+                            else -> "N/A"
+                        }
                         StockModel(
                             symbol = dto.symbol,
                             companyName = dto.companyName,
                             price = String.format("₹%,.2f", dto.currentPrice),
-                            change = "N/A",
-                            isPositive = true
+                            change = changeText,
+                            isPositive = trend?.trim()?.equals("UP", ignoreCase = true) == true
                         )
                     }
 

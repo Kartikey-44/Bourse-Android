@@ -19,6 +19,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val viewModel: HomeViewModel by viewModels()
 
+    private var allTransactions = listOf<ind.finance.bourse.data.model.TransactionDto>()
+    private var selectedTradingAction = "BUY"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -31,6 +34,7 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
+        setupTradingActions()
         setupBottomNavigation()
         setupObservers()
 
@@ -42,6 +46,103 @@ class MainActivity : AppCompatActivity() {
         viewModel.loadHomeData()
     }
 
+    private fun setupTradingActions() {
+        updateTradingActionUI("BUY")
+
+        binding.btnBuy.setOnClickListener {
+            updateTradingActionUI("BUY")
+            filterRecentActivity("BUY")
+        }
+
+        binding.btnSell.setOnClickListener {
+            updateTradingActionUI("SELL")
+            filterRecentActivity("SELL")
+        }
+    }
+
+    private fun updateTradingActionUI(action: String) {
+        selectedTradingAction = action
+        if (action == "BUY") {
+            binding.btnBuy.background = getDrawable(R.drawable.bg_login_button)
+            binding.btnBuy.setTextColor(getColor(R.color.bourse_button_text))
+
+            binding.btnSell.background = getDrawable(R.drawable.bg_secondary_button)
+            binding.btnSell.setTextColor(getColor(R.color.bourse_text_primary))
+        } else {
+            binding.btnSell.background = getDrawable(R.drawable.bg_sell_button)
+            binding.btnSell.setTextColor(getColor(R.color.white))
+
+            binding.btnBuy.background = getDrawable(R.drawable.bg_secondary_button)
+            binding.btnBuy.setTextColor(getColor(R.color.bourse_text_primary))
+        }
+    }
+
+    private fun filterRecentActivity(action: String) {
+        val filtered = if (allTransactions.isEmpty()) {
+            emptyList()
+        } else {
+            allTransactions.filter { (it.action ?: "BUY").equals(action, ignoreCase = true) }
+        }
+
+        if (filtered.isNotEmpty()) {
+            binding.cardActivity.visibility = View.VISIBLE
+            binding.activityHeader.visibility = View.VISIBLE
+
+            if (filtered.indices.contains(0)) {
+                bindTransactionRow(
+                    filtered[0],
+                    binding.layoutTx1,
+                    binding.tvTx1Type,
+                    binding.tvTx1Symbol,
+                    binding.tvTx1Details,
+                    binding.tvTx1Amount,
+                    binding.divider1,
+                    filtered.size > 1
+                )
+            } else {
+                binding.layoutTx1.visibility = View.GONE
+            }
+
+            if (filtered.indices.contains(1)) {
+                bindTransactionRow(
+                    filtered[1],
+                    binding.layoutTx2,
+                    binding.tvTx2Type,
+                    binding.tvTx2Symbol,
+                    binding.tvTx2Details,
+                    binding.tvTx2Amount,
+                    binding.divider2,
+                    filtered.size > 2
+                )
+            } else {
+                binding.layoutTx2.visibility = View.GONE
+                binding.divider1.visibility = View.GONE
+            }
+
+            if (filtered.indices.contains(2)) {
+                bindTransactionRow(
+                    filtered[2],
+                    binding.layoutTx3,
+                    binding.tvTx3Type,
+                    binding.tvTx3Symbol,
+                    binding.tvTx3Details,
+                    binding.tvTx3Amount,
+                    null,
+                    false
+                )
+            } else {
+                binding.layoutTx3.visibility = View.GONE
+                binding.divider2.visibility = View.GONE
+            }
+        } else {
+            binding.layoutTx1.visibility = View.GONE
+            binding.layoutTx2.visibility = View.GONE
+            binding.layoutTx3.visibility = View.GONE
+            binding.divider1.visibility = View.GONE
+            binding.divider2.visibility = View.GONE
+        }
+    }
+
     private fun setupObservers() {
         viewModel.homeState.observe(this) { state ->
             when (state) {
@@ -49,12 +150,15 @@ class MainActivity : AppCompatActivity() {
                     // Keep layout stable
                 }
                 is HomeState.Success -> {
+                    if (state.userName.isNotBlank()) {
+                        binding.tvGreeting.text = "Good morning, ${state.userName}"
+                    }
                     state.summary?.let { summary ->
-                        summary.portfolioValue?.let {
-                            binding.tvPortfolioValue.text = String.format("₹%,.2f", it)
-                        }
-                        val retAmt = summary.returnAmount ?: 0.0
-                        val retPct = summary.returnPercentage ?: 0.0
+                        binding.tvPortfolioValue.text = String.format("₹%,.2f", summary.totalPortfolioValue)
+                        val retAmt = summary.totalProfitLoss
+                        val retPct = if (summary.totalInvestedValue > 0) {
+                            (summary.totalProfitLoss / summary.totalInvestedValue) * 100.0
+                        } else 0.0
                         val signAmt = if (retAmt >= 0) "+" else ""
                         val signPct = if (retPct >= 0) "+" else ""
                         binding.tvPortfolioChangeAmount.text = String.format("%s₹%,.2f", signAmt, retAmt)
@@ -64,66 +168,12 @@ class MainActivity : AppCompatActivity() {
                         binding.tvPortfolioChangeAmount.setTextColor(profitColor)
                         binding.tvPortfolioChangePercent.setTextColor(profitColor)
 
-                        summary.investedAmount?.let {
-                            binding.tvInvestedValue.text = String.format("₹%,.2f", it)
-                        }
-                        summary.availableBalance?.let {
-                            binding.tvAvailableValue.text = String.format("₹%,.2f", it)
-                        }
+                        binding.tvInvestedValue.text = String.format("₹%,.2f", summary.totalInvestedValue)
+                        binding.tvAvailableValue.text = String.format("₹%,.2f", summary.cashBalance)
                     }
 
-                    // Populate recent activity (latest 1-3 transactions)
-                    val txList = state.transactions
-                    if (txList.isNotEmpty()) {
-                        binding.cardActivity.visibility = View.VISIBLE
-                        binding.activityHeader.visibility = View.VISIBLE
-
-                        if (txList.indices.contains(0)) {
-                            bindTransactionRow(
-                                txList[0],
-                                binding.layoutTx1,
-                                binding.tvTx1Type,
-                                binding.tvTx1Symbol,
-                                binding.tvTx1Details,
-                                binding.tvTx1Amount,
-                                binding.divider1,
-                                true
-                            )
-                        }
-                        if (txList.indices.contains(1)) {
-                            bindTransactionRow(
-                                txList[1],
-                                binding.layoutTx2,
-                                binding.tvTx2Type,
-                                binding.tvTx2Symbol,
-                                binding.tvTx2Details,
-                                binding.tvTx2Amount,
-                                binding.divider2,
-                                true
-                            )
-                        } else {
-                            binding.layoutTx2.visibility = View.GONE
-                            binding.divider1.visibility = View.GONE
-                        }
-                        if (txList.indices.contains(2)) {
-                            bindTransactionRow(
-                                txList[2],
-                                binding.layoutTx3,
-                                binding.tvTx3Type,
-                                binding.tvTx3Symbol,
-                                binding.tvTx3Details,
-                                binding.tvTx3Amount,
-                                null,
-                                false
-                            )
-                        } else {
-                            binding.layoutTx3.visibility = View.GONE
-                            binding.divider2.visibility = View.GONE
-                        }
-                    } else {
-                        binding.cardActivity.visibility = View.GONE
-                        binding.activityHeader.visibility = View.GONE
-                    }
+                    allTransactions = state.transactions
+                    filterRecentActivity(selectedTradingAction)
                 }
                 is HomeState.Error -> {
                     Toast.makeText(this, state.message, Toast.LENGTH_SHORT).show()
@@ -149,14 +199,14 @@ class MainActivity : AppCompatActivity() {
         showDivider: Boolean
     ) {
         layout.visibility = View.VISIBLE
-        tvType.text = tx.type ?: "—"
-        val isBuy = tx.type?.equals("BUY", ignoreCase = true) == true
+        tvType.text = tx.action
+        val isBuy = (tx.action ?: "BUY").equals("BUY", ignoreCase = true)
         tvType.setTextColor(getColor(if (isBuy) R.color.bourse_buy else R.color.bourse_sell))
 
-        tvSymbol.text = tx.symbol ?: "—"
-        val shares = tx.shares
-        tvDetails.text = shares?.let { "$it share${if (it > 1) "s" else ""}" } ?: "—"
-        tvAmount.text = tx.totalAmount?.let { String.format("₹%,.2f", it) } ?: "—"
+        tvSymbol.text = tx.symbol ?: "TCS"
+        val shares = tx.quantity
+        tvDetails.text = "$shares share${if (shares > 1) "s" else ""}"
+        tvAmount.text = String.format("₹%,.2f", tx.totalAmount)
 
         divider?.visibility = if (showDivider) View.VISIBLE else View.GONE
     }

@@ -7,6 +7,7 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -24,7 +25,8 @@ import ind.finance.bourse.ui.stock.StockDetailsState
 import ind.finance.bourse.ui.stock.StockDetailsViewModel
 import ind.finance.bourse.ui.trading.TradingState
 import ind.finance.bourse.ui.trading.TradingViewModel
-import androidx.activity.viewModels
+
+
 
 class StockDetailsActivity : AppCompatActivity() {
 
@@ -185,9 +187,7 @@ class StockDetailsActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        binding.btnBack.setOnClickListener {
-            finish()
-        }
+        binding.btnBack.setOnClickListener { finish() }
 
         binding.btnBuy.setOnClickListener {
             showQuantityDialog(isBuy = true)
@@ -217,6 +217,7 @@ class StockDetailsActivity : AppCompatActivity() {
             }
         }
     }
+
 
     private fun showQuantityDialog(isBuy: Boolean) {
         val dialogBinding = DialogQuantityBinding.inflate(LayoutInflater.from(this))
@@ -351,18 +352,15 @@ class StockDetailsActivity : AppCompatActivity() {
 
     private fun showSuccessDialog(transaction: TransactionDto) {
         val successBinding = DialogSuccessBinding.inflate(LayoutInflater.from(this))
-        val actionText = transaction.type ?: "—"
+        val actionText = transaction.action
         successBinding.tvSuccessAction.text = actionText
         if (actionText.equals("SELL", ignoreCase = true)) {
             successBinding.tvSuccessAction.setTextColor(getColor(R.color.bourse_sell))
         }
-        successBinding.tvSuccessSymbol.text = transaction.symbol ?: "—"
-        successBinding.tvSuccessQuantity.text = transaction.shares?.let {
-            "$it share${if (it == 1) "" else "s"}"
-        } ?: "—"
-        successBinding.tvSuccessTotal.text = transaction.totalAmount?.let {
-            String.format("₹%,.2f", it)
-        } ?: "—"
+        successBinding.tvSuccessSymbol.text = transaction.symbol
+        val quantity = transaction.quantity
+        successBinding.tvSuccessQuantity.text = "$quantity share${if (quantity == 1) "" else "s"}"
+        successBinding.tvSuccessTotal.text = String.format("₹%,.2f", transaction.totalAmount)
 
         val dialog = AlertDialog.Builder(this)
             .setView(successBinding.root)
@@ -391,3 +389,4 @@ class StockDetailsActivity : AppCompatActivity() {
         dialog.show()
     }
 }
+

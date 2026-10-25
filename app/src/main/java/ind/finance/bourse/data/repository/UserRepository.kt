@@ -1,5 +1,6 @@
 package ind.finance.bourse.data.repository
 
+import android.util.Log
 import ind.finance.bourse.data.local.TokenManager
 import ind.finance.bourse.data.model.LoginRequest
 import ind.finance.bourse.data.model.LoginResponse
@@ -20,10 +21,9 @@ class UserRepository(
                 val response = api.login(LoginRequest(email, password))
                 if (response.isSuccessful && response.body() != null) {
                     val body = response.body()!!
-                    val token = body.authToken
-                    if (!token.isNullOrBlank()) {
+                    val token = body.token
+                    if (!token.isBlank()) {
                         tokenManager.saveToken(token)
-                        body.user?.name?.let { tokenManager.saveUserName(it) }
                     }
                     Result.success(body)
                 } else {
@@ -36,20 +36,28 @@ class UserRepository(
     }
 
     suspend fun register(name: String, email: String, password: String): Result<RegisterResponse> {
+        Log.d("BOURSE_REGISTER", "REPOSITORY REGISTER STARTED")
         return withContext(Dispatchers.IO) {
             try {
+                Log.d("BOURSE_REGISTER", "CALLING API")
                 val response = api.register(RegisterRequest(name, email, password))
+                Log.d("BOURSE_REGISTER", "API RETURNED")
+                Log.d("BOURSE_REGISTER", "HTTP CODE = ${response.code()}")
                 if (response.isSuccessful) {
+                    Log.d("BOURSE_REGISTER", "SUCCESS BODY = ${response.body()}")
                     Result.success(response.body() ?: RegisterResponse("Registration successful", null, true))
                 } else {
                     val errorBody = response.errorBody()?.string()
+                    Log.d("BOURSE_REGISTER", "ERROR BODY = $errorBody")
                     val errorMsg = when {
                         errorBody?.contains("already", ignoreCase = true) == true -> "Email already registered"
                         else -> "Invalid registration details"
                     }
                     Result.failure(Exception(errorMsg))
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                Log.e("BOURSE_REGISTER", "EXCEPTION = ${e.javaClass.name}", e)
+                Log.e("BOURSE_REGISTER", "EXCEPTION MESSAGE = ${e.message}")
                 Result.failure(Exception("Unable to connect to Bourse"))
             }
         }

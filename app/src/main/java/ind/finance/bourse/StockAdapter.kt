@@ -24,7 +24,11 @@ class StockAdapter(
         holder.binding.tvStockPrice.text = stock.price
         holder.binding.tvStockChange.text = stock.change
 
-        val colorRes = if (stock.isPositive) R.color.bourse_profit else R.color.bourse_loss
+        val colorRes = when {
+            stock.change.contains("UP") -> R.color.bourse_profit
+            stock.change.contains("DOWN") -> R.color.bourse_loss
+            else -> R.color.bourse_text_secondary
+        }
         holder.binding.tvStockChange.setTextColor(holder.itemView.context.getColor(colorRes))
 
         holder.itemView.setOnClickListener {

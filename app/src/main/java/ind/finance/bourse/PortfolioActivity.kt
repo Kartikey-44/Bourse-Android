@@ -54,9 +54,12 @@ class PortfolioActivity : AppCompatActivity() {
 
     private fun bindPortfolio(state: PortfolioState.Success) {
         state.summary?.let { summary ->
-            binding.tvPortfolioValue.text = money(summary.portfolioValue)
-            binding.tvPortfolioChangeAmount.text = signedMoney(summary.returnAmount)
-            binding.tvPortfolioChangePercent.text = signedPercent(summary.returnPercentage)
+            binding.tvPortfolioValue.text = money(summary.totalPortfolioValue)
+            binding.tvPortfolioChangeAmount.text = signedMoney(summary.totalProfitLoss)
+            val returnPct = if (summary.totalInvestedValue > 0) {
+                (summary.totalProfitLoss / summary.totalInvestedValue) * 100.0
+            } else 0.0
+            binding.tvPortfolioChangePercent.text = signedPercent(returnPct)
         }
 
         val holdings = state.holdings

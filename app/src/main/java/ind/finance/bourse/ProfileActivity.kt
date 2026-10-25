@@ -120,9 +120,6 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        binding.btnPersonalInfo.setOnClickListener {
-            Toast.makeText(this, "Personal Information", Toast.LENGTH_SHORT).show()
-        }
 
         binding.btnChangePin.setOnClickListener {
             showChangePinDialog()

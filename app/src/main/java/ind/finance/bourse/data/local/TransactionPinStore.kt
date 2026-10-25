@@ -2,6 +2,7 @@ package ind.finance.bourse.data.local
 
 import android.content.Context
 import android.util.Base64
+import android.util.Log
 import java.nio.charset.StandardCharsets
 import java.security.KeyStore
 import javax.crypto.Cipher
@@ -19,36 +20,66 @@ class TransactionPinStore(context: Context) {
             .apply()
     }
 
-    fun hasPin(): Boolean = preferences.contains(PIN_VALUE)
+    fun hasPin(): Boolean {
+        if (!preferences.contains(PIN_VALUE)) return false
+        val pin = getPin()
+        return !pin.isNullOrBlank()
+    }
 
     fun getPin(): String? {
         val encoded = preferences.getString(PIN_VALUE, null) ?: return null
         return try {
-            val encrypted = Base64.decode(encoded, Base64.DEFAULT)
-            val iv = encrypted.copyOfRange(0, IV_LENGTH)
-            val ciphertext = encrypted.copyOfRange(IV_LENGTH, encrypted.size)
+            val combined = Base64.decode(encoded, Base64.NO_WRAP)
+            if (combined.size < 2) return null
+
+            val ivLength = combined[0].toInt()
+            if (ivLength <= 0 || combined.size < 1 + ivLength) return null
+
+            val iv = combined.copyOfRange(1, 1 + ivLength)
+            val ciphertext = combined.copyOfRange(1 + ivLength, combined.size)
+
             val cipher = Cipher.getInstance(TRANSFORMATION)
             cipher.init(Cipher.DECRYPT_MODE, getKey(), GCMParameterSpec(TAG_LENGTH, iv))
-            String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8)
-        } catch (_: Exception) {
+            val decryptedPin = String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8)
+            decryptedPin
+        } catch (e: Exception) {
+            Log.e("TransactionPinStore", "Failed to decrypt PIN", e)
             null
         }
     }
 
     fun savePin(pin: String) {
-        val iv = ByteArray(IV_LENGTH)
-        java.security.SecureRandom().nextBytes(iv)
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(Cipher.ENCRYPT_MODE, getKey(), GCMParameterSpec(TAG_LENGTH, iv))
-        val ciphertext = cipher.doFinal(pin.toByteArray(StandardCharsets.UTF_8))
-        val encrypted = Base64.encodeToString(iv + ciphertext, Base64.DEFAULT)
-        preferences.edit().putString(PIN_VALUE, encrypted).apply()
+        try {
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            cipher.init(Cipher.ENCRYPT_MODE, getKey())
+            val iv = cipher.iv
+            val ciphertext = cipher.doFinal(pin.toByteArray(StandardCharsets.UTF_8))
+            val combined = byteArrayOf(iv.size.toByte()) + iv + ciphertext
+            val encoded = Base64.encodeToString(combined, Base64.NO_WRAP)
+            preferences.edit().putString(PIN_VALUE, encoded).commit()
+            Log.d("TransactionPinStore", "PIN saved successfully")
+        } catch (e: Exception) {
+            Log.e("TransactionPinStore", "Failed to save PIN", e)
+        }
+    }
+
+    fun clearPin() {
+        preferences.edit().remove(PIN_VALUE).commit()
     }
 
     private fun getKey(): SecretKey {
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
-        val existing = keyStore.getKey(KEY_ALIAS, null) as? SecretKey
-        if (existing != null) return existing
+
+        if (keyStore.containsAlias(KEY_ALIAS)) {
+            val entry = keyStore.getEntry(KEY_ALIAS, null)
+            if (entry is KeyStore.SecretKeyEntry) {
+                return entry.secretKey
+            }
+            val key = keyStore.getKey(KEY_ALIAS, null) as? SecretKey
+            if (key != null) {
+                return key
+            }
+        }
 
         val generator = KeyGenerator.getInstance(KEY_ALGORITHM, ANDROID_KEYSTORE)
         generator.init(
@@ -72,7 +103,6 @@ class TransactionPinStore(context: Context) {
         const val TRANSFORMATION = "AES/GCM/NoPadding"
         const val PREFERENCES = "bourse_secure_pin"
         const val PIN_VALUE = "encrypted_pin"
-        const val IV_LENGTH = 12
         const val TAG_LENGTH = 128
     }
 }

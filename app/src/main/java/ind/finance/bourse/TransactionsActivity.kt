@@ -168,22 +168,16 @@ class TransactionsActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun ind.finance.bourse.data.model.TransactionDto.toTransactionModel(): TransactionModel? {
-        val id = id ?: return null
-        val type = type ?: return null
-        val symbol = symbol ?: return null
-        val shares = shares ?: return null
-        val price = pricePerShare ?: return null
-        val total = totalAmount ?: return null
+    private fun ind.finance.bourse.data.model.TransactionDto.toTransactionModel(): TransactionModel {
         return TransactionModel(
-            id = id,
-            type = type,
+            id = tradeId.toString(),
+            type = action,
             symbol = symbol,
-            shares = shares,
-            pricePerShare = price,
-            totalAmount = total,
-            dateTime = dateTime.orEmpty(),
-            status = status.orEmpty()
+            shares = quantity,
+            pricePerShare = executionPrice,
+            totalAmount = totalAmount,
+            dateTime = timestamp,
+            status = status
         )
     }
 
