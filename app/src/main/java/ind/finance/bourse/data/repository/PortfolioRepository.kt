@@ -44,49 +44,39 @@ class PortfolioRepository(
     suspend fun getTransactions(): Result<List<TransactionDto>> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = api.getRawTransactions()
+                val response = api.getTransactions()
+
                 if (response.code() == 401) {
                     tokenManager.clearToken()
                     return@withContext Result.failure(Exception("UNAUTHORIZED"))
                 }
+
                 if (response.isSuccessful && response.body() != null) {
-                    val element = response.body()!!
-                    val list = mutableListOf<TransactionDto>()
-                    val gson = Gson()
 
-                    if (element.isJsonArray) {
-                        val jsonArray = element.asJsonArray
-                        for (item in jsonArray) {
-                            try {
-                                val dto = gson.fromJson(item, TransactionDto::class.java)
-                                list.add(dto)
-                            } catch (_: Exception) {}
-                        }
-                    } else if (element.isJsonObject) {
-                        val jsonObj = element.asJsonObject
-                        val array = jsonObj.getAsJsonArray("transactions")
-                            ?: jsonObj.getAsJsonArray("data")
-                            ?: jsonObj.getAsJsonArray("result")
-                        if (array != null) {
-                            for (item in array) {
-                                try {
-                                    val dto = gson.fromJson(item, TransactionDto::class.java)
-                                    list.add(dto)
-                                } catch (_: Exception) {}
-                            }
-
-                        }
+                    val transactions = response.body()!!.map { tx ->
+                        TransactionDto(
+                            tradeId = 0L,
+                            symbol = tx.symbol,
+                            action = tx.type,
+                            quantity = tx.quantity,
+                            executionPrice = tx.price,
+                            totalAmount = tx.price * tx.quantity,
+                            status = tx.status ?: "UNKNOWN",
+                            timestamp = tx.timestamp
+                        )
                     }
-                    Result.success(list)
+
+                    Result.success(transactions)
+
                 } else {
-                    Result.failure(Exception("Unable to load transactions"))
+                    Result.success(emptyList())
                 }
+
             } catch (e: Exception) {
-                Result.failure(e)
+                Result.success(emptyList())
             }
         }
     }
-
     private suspend fun <T> execute(
         call: suspend () -> retrofit2.Response<T>
     ): Result<T> {

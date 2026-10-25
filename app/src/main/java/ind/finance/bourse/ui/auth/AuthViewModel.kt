@@ -1,6 +1,7 @@
 package ind.finance.bourse.ui.auth
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -66,6 +67,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun register(name: String, email: String, password: String, confirmPassword: String) {
+        Log.d("BOURSE_REGISTER", "VIEWMODEL REGISTER STARTED")
         if (name.isBlank() || email.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
             _registerState.value = RegisterState.Error("All fields are required")
             return
@@ -89,13 +91,22 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         _registerState.value = RegisterState.Loading
 
         viewModelScope.launch {
-            val result = repository.register(name, email, password)
-            if (result.isSuccess) {
-                _registerState.value = RegisterState.Success
-            } else {
-                val err = result.exceptionOrNull()
-                val msg = err?.message ?: "Unable to connect to Bourse\nPlease try again."
-                _registerState.value = RegisterState.Error(msg)
+            try {
+                Log.d("BOURSE_REGISTER", "CALLING REPOSITORY")
+                val result = repository.register(name, email, password)
+                if (result.isSuccess) {
+                    // Log in to fetch & persist JWT token
+                    repository.login(email, password)
+                    _registerState.value = RegisterState.Success
+                } else {
+                    val err = result.exceptionOrNull()
+                    val msg = err?.message ?: "Unable to connect to Bourse\nPlease try again."
+                    _registerState.value = RegisterState.Error(msg)
+                }
+            } catch (e: Throwable) {
+                Log.e("BOURSE_REGISTER", "EXCEPTION = ${e.javaClass.name}", e)
+                Log.e("BOURSE_REGISTER", "EXCEPTION MESSAGE = ${e.message}")
+                _registerState.value = RegisterState.Error("Unable to connect to Bourse\nPlease try again.")
             }
         }
     }

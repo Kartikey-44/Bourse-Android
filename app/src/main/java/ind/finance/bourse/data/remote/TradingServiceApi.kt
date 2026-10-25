@@ -4,6 +4,7 @@ import ind.finance.bourse.data.model.TradeRequest
 import ind.finance.bourse.data.model.TransactionDto
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
 
 interface TradingServiceApi {
@@ -12,4 +13,7 @@ interface TradingServiceApi {
 
     @POST("api/trading/sell")
     suspend fun sell(@Body request: TradeRequest): Response<TransactionDto>
+
+    @GET("api/trading/history")
+    suspend fun getHistory(): Response<List<TransactionDto>>
 }

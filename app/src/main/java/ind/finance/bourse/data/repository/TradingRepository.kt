@@ -4,6 +4,8 @@ import com.google.gson.JsonParser
 import ind.finance.bourse.data.local.TokenManager
 import ind.finance.bourse.data.model.TradeRequest
 import ind.finance.bourse.data.model.TransactionDto
+import android.util.Log
+import android.util.Log.e
 import ind.finance.bourse.data.remote.TradingServiceApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -32,7 +34,8 @@ class TradingRepository(
             } else {
                 Result.failure(Exception(safeErrorMessage(response)))
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e("BOURSE_TRADE", "Trade API exception", e)
             Result.failure(Exception("Unable to complete trade"))
         }
     }

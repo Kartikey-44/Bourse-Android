@@ -8,7 +8,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
-import android.widget.ProgressBar
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -17,6 +16,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import ind.finance.bourse.databinding.ActivityProfileBinding
 import ind.finance.bourse.databinding.DialogChangePinBinding
+import ind.finance.bourse.databinding.DialogLoadingBinding
 import ind.finance.bourse.data.local.TokenManager
 import ind.finance.bourse.ui.profile.ProfileState
 import ind.finance.bourse.ui.profile.ProfileViewModel
@@ -89,10 +89,11 @@ class ProfileActivity : AppCompatActivity() {
 
     private fun showProfileLoading() {
         if (loadingDialog?.isShowing == true) return
-        val progressBar = ProgressBar(this)
+        val loadingBinding = DialogLoadingBinding.inflate(LayoutInflater.from(this))
+        loadingBinding.tvLoadingTitle.text = "Loading profile"
+        loadingBinding.tvLoadingSubtitle.text = "Please wait a moment."
         loadingDialog = AlertDialog.Builder(this)
-            .setTitle("Loading profile")
-            .setView(progressBar)
+            .setView(loadingBinding.root)
             .setCancelable(false)
             .create()
         loadingDialog?.show()
@@ -120,9 +121,6 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        binding.btnPersonalInfo.setOnClickListener {
-            Toast.makeText(this, "Personal Information", Toast.LENGTH_SHORT).show()
-        }
 
         binding.btnChangePin.setOnClickListener {
             showChangePinDialog()
@@ -239,6 +237,13 @@ class ProfileActivity : AppCompatActivity() {
 
     private fun setupThemeSelector() {
         val buttons = listOf(binding.btnThemeSystem, binding.btnThemeLight, binding.btnThemeDark)
+
+        val currentNightMode = AppCompatDelegate.getDefaultNightMode()
+        when (currentNightMode) {
+            AppCompatDelegate.MODE_NIGHT_NO -> updateThemeUI(binding.btnThemeLight, buttons)
+            AppCompatDelegate.MODE_NIGHT_YES -> updateThemeUI(binding.btnThemeDark, buttons)
+            else -> updateThemeUI(binding.btnThemeSystem, buttons)
+        }
 
         binding.btnThemeSystem.setOnClickListener {
             updateThemeUI(binding.btnThemeSystem, buttons)

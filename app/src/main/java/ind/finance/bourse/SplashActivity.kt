@@ -2,12 +2,11 @@ package ind.finance.bourse
 
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import ind.finance.bourse.data.local.TokenManager
 import ind.finance.bourse.databinding.ActivitySplashBinding
 
 class SplashActivity : AppCompatActivity() {
@@ -26,11 +25,17 @@ class SplashActivity : AppCompatActivity() {
             insets
         }
 
-        // Navigate to LoginActivity after 1.8 seconds
-        Handler(Looper.getMainLooper()).postDelayed({
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
-            finish()
-        }, 1800)
+        val tokenManager = TokenManager(this)
+        val token = tokenManager.getToken()
+
+        val targetActivity = if (!token.isNullOrBlank()) {
+            MainActivity::class.java
+        } else {
+            LoginActivity::class.java
+        }
+
+        val intent = Intent(this, targetActivity)
+        startActivity(intent)
+        finish()
     }
 }

@@ -7,11 +7,16 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import ind.finance.bourse.databinding.ActivityStockDetailsBinding
 import ind.finance.bourse.databinding.DialogFailureBinding
 import ind.finance.bourse.databinding.DialogLoadingBinding
@@ -19,12 +24,12 @@ import ind.finance.bourse.databinding.DialogPinBinding
 import ind.finance.bourse.databinding.DialogQuantityBinding
 import ind.finance.bourse.databinding.DialogSuccessBinding
 import ind.finance.bourse.data.local.TransactionPinStore
+import ind.finance.bourse.data.model.PriceHistoryPoint
 import ind.finance.bourse.data.model.TransactionDto
 import ind.finance.bourse.ui.stock.StockDetailsState
 import ind.finance.bourse.ui.stock.StockDetailsViewModel
 import ind.finance.bourse.ui.trading.TradingState
 import ind.finance.bourse.ui.trading.TradingViewModel
-import androidx.activity.viewModels
 
 class StockDetailsActivity : AppCompatActivity() {
 
@@ -116,6 +121,70 @@ class StockDetailsActivity : AppCompatActivity() {
         lineChart.invalidate()
     }
 
+    private fun bindChartHistory(history: List<PriceHistoryPoint>) {
+        val lineChart = binding.lineChart
+        if (history.isEmpty()) {
+            lineChart.clear()
+            lineChart.setNoDataText("No price trend available")
+            lineChart.invalidate()
+            return
+        }
+
+        val sortedHistory = if (history.size > 1 && history.first().timestamp > history.last().timestamp) {
+            history.reversed()
+        } else {
+            history
+        }
+
+        val entries = ArrayList<Entry>()
+        val timeLabels = ArrayList<String>()
+
+        sortedHistory.forEachIndexed { index, point ->
+            entries.add(Entry(index.toFloat(), point.price.toFloat()))
+            timeLabels.add(formatTimestamp(point.timestamp))
+        }
+
+        val xAxis = lineChart.xAxis
+        xAxis.valueFormatter = IndexAxisValueFormatter(timeLabels)
+        xAxis.granularity = 1f
+        xAxis.labelCount = Math.min(timeLabels.size, 5)
+        xAxis.isGranularityEnabled = true
+
+        val dataSet = LineDataSet(entries, "Price").apply {
+            color = getColor(R.color.bourse_action_text)
+            valueTextColor = getColor(R.color.bourse_text_primary)
+            lineWidth = 2f
+            setDrawCircles(false)
+            setDrawValues(false)
+            mode = LineDataSet.Mode.CUBIC_BEZIER
+            setDrawFilled(true)
+            fillColor = getColor(R.color.bourse_action_text)
+            fillAlpha = 35
+        }
+
+        lineChart.data = LineData(dataSet)
+        lineChart.description.isEnabled = false
+        lineChart.legend.isEnabled = false
+        lineChart.invalidate()
+    }
+
+    private fun formatTimestamp(timestamp: String): String {
+        return try {
+            if (timestamp.length >= 16 && timestamp.contains("T")) {
+                val timePart = timestamp.substringAfter("T")
+                if (timePart.length >= 5) {
+                    timePart.substring(0, 5)
+                } else {
+                    timestamp
+                }
+            } else {
+                timestamp
+            }
+        } catch (_: Exception) {
+            timestamp
+        }
+    }
+
     private fun setupStockObserver() {
         viewModel.state.observe(this) { state ->
             when (state) {
@@ -131,15 +200,33 @@ class StockDetailsActivity : AppCompatActivity() {
                     companyName = stock.companyName
                     currentPriceDouble = stock.currentPrice
                     priceString = String.format("₹%,.2f", stock.currentPrice)
-                    changeString = state.trend?.trend?.let { trend ->
-                        when (trend.uppercase()) {
-                            "UP" -> "↑ UP"
-                            "DOWN" -> "↓ DOWN"
-                            else -> trend
+
+                    val history = state.history
+                    val sortedHistory = if (history.size > 1 && history.first().timestamp > history.last().timestamp) {
+                        history.reversed()
+                    } else {
+                        history
+                    }
+
+                    if (sortedHistory.isNotEmpty()) {
+                        val startPrice = sortedHistory.firstOrNull()?.price ?: stock.currentPrice
+                        val endPrice = sortedHistory.lastOrNull()?.price ?: stock.currentPrice
+                        val pctChange = if (startPrice > 0) ((endPrice - startPrice) / startPrice) * 100.0 else 0.0
+                        isPositiveTrend = pctChange >= 0
+                        val sign = if (pctChange >= 0) "▲ +" else "▼ "
+                        changeString = String.format("%s%.2f%%", sign, pctChange)
+                    } else {
+                        val trend = state.trend?.trend?.trim()?.uppercase()
+                        isPositiveTrend = trend != "DOWN"
+                        changeString = when (trend) {
+                            "UP" -> "▲ UP"
+                            "DOWN" -> "▼ DOWN"
+                            else -> "—"
                         }
-                    } ?: "—"
-                    isPositiveTrend = state.trend?.trend?.equals("DOWN", ignoreCase = true) != true
+                    }
+
                     bindStockData()
+                    bindChartHistory(state.history)
                 }
                 is StockDetailsState.Error -> showError()
                 StockDetailsState.Unauthorized -> {
@@ -185,9 +272,7 @@ class StockDetailsActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        binding.btnBack.setOnClickListener {
-            finish()
-        }
+        binding.btnBack.setOnClickListener { finish() }
 
         binding.btnBuy.setOnClickListener {
             showQuantityDialog(isBuy = true)
@@ -217,6 +302,7 @@ class StockDetailsActivity : AppCompatActivity() {
             }
         }
     }
+
 
     private fun showQuantityDialog(isBuy: Boolean) {
         val dialogBinding = DialogQuantityBinding.inflate(LayoutInflater.from(this))
@@ -334,6 +420,7 @@ class StockDetailsActivity : AppCompatActivity() {
         tradingViewModel.submit(isBuy, stockSymbol, quantity)
     }
 
+    /* Loading Dialog & Dialog handlers */
     private fun showTradeLoading() {
         if (loadingDialog?.isShowing == true) return
         val loadingBinding = DialogLoadingBinding.inflate(LayoutInflater.from(this))
@@ -351,18 +438,15 @@ class StockDetailsActivity : AppCompatActivity() {
 
     private fun showSuccessDialog(transaction: TransactionDto) {
         val successBinding = DialogSuccessBinding.inflate(LayoutInflater.from(this))
-        val actionText = transaction.type ?: "—"
+        val actionText = transaction.action
         successBinding.tvSuccessAction.text = actionText
         if (actionText.equals("SELL", ignoreCase = true)) {
             successBinding.tvSuccessAction.setTextColor(getColor(R.color.bourse_sell))
         }
-        successBinding.tvSuccessSymbol.text = transaction.symbol ?: "—"
-        successBinding.tvSuccessQuantity.text = transaction.shares?.let {
-            "$it share${if (it == 1) "" else "s"}"
-        } ?: "—"
-        successBinding.tvSuccessTotal.text = transaction.totalAmount?.let {
-            String.format("₹%,.2f", it)
-        } ?: "—"
+        successBinding.tvSuccessSymbol.text = transaction.symbol
+        val quantity = transaction.quantity
+        successBinding.tvSuccessQuantity.text = "$quantity share${if (quantity == 1) "" else "s"}"
+        successBinding.tvSuccessTotal.text = String.format("₹%,.2f", transaction.totalAmount)
 
         val dialog = AlertDialog.Builder(this)
             .setView(successBinding.root)

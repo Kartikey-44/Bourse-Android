@@ -41,7 +41,7 @@ class PortfolioActivity : AppCompatActivity() {
             when (state) {
                 PortfolioState.Loading -> Unit
                 is PortfolioState.Success -> bindPortfolio(state)
-                is PortfolioState.Error -> showError()
+                is PortfolioState.Error -> showError(state.message)
                 PortfolioState.Unauthorized -> navigateToLogin()
             }
         }
@@ -53,30 +53,117 @@ class PortfolioActivity : AppCompatActivity() {
     }
 
     private fun bindPortfolio(state: PortfolioState.Success) {
+
         state.summary?.let { summary ->
-            binding.tvPortfolioValue.text = money(summary.portfolioValue)
-            binding.tvPortfolioChangeAmount.text = signedMoney(summary.returnAmount)
-            binding.tvPortfolioChangePercent.text = signedPercent(summary.returnPercentage)
+
+            binding.tvPortfolioValue.text =
+                money(summary.totalPortfolioValue)
+
+            binding.tvPortfolioChangeAmount.text =
+                signedMoney(summary.totalProfitLoss)
+
+            val returnPct =
+                if (summary.totalInvestedValue > 0) {
+                    (summary.totalProfitLoss /
+                            summary.totalInvestedValue) * 100.0
+                } else {
+                    0.0
+                }
+
+            binding.tvPortfolioChangePercent.text =
+                signedPercent(returnPct)
         }
 
         val holdings = state.holdings
-        binding.cardHoldings.visibility = if (holdings.isEmpty()) View.GONE else View.VISIBLE
-        binding.llEmptyHoldings.visibility = if (holdings.isEmpty()) View.VISIBLE else View.GONE
+
+        binding.cardHoldings.visibility =
+            if (holdings.isEmpty()) View.GONE else View.VISIBLE
+
+        binding.llEmptyHoldings.visibility =
+            if (holdings.isEmpty()) View.VISIBLE else View.GONE
+
         val holdingSlots = listOf(
-            listOf(binding.tvHolding1Symbol, binding.tvHolding1Company, binding.tvHolding1Value, binding.tvHolding1Quantity),
-            listOf(binding.tvHolding2Symbol, binding.tvHolding2Company, binding.tvHolding2Value, binding.tvHolding2Quantity),
-            listOf(binding.tvHolding3Symbol, binding.tvHolding3Company, binding.tvHolding3Value, binding.tvHolding3Quantity)
+            listOf(
+                binding.tvHolding1Symbol,
+                binding.tvHolding1Company,
+                binding.tvHolding1Value,
+                binding.tvHolding1Quantity
+            ),
+            listOf(
+                binding.tvHolding2Symbol,
+                binding.tvHolding2Company,
+                binding.tvHolding2Value,
+                binding.tvHolding2Quantity
+            ),
+            listOf(
+                binding.tvHolding3Symbol,
+                binding.tvHolding3Company,
+                binding.tvHolding3Value,
+                binding.tvHolding3Quantity
+            )
         )
+
+        val holdingRows = listOf(
+            binding.holdingRow1,
+            binding.holdingRow2,
+            binding.holdingRow3
+        )
+
         holdingSlots.forEachIndexed { index, views ->
+
             val holding = holdings.getOrNull(index)
-            views.forEach { it.visibility = if (holding == null) View.GONE else View.VISIBLE }
-            if (holding != null) {
-                views[0].text = holding.symbol ?: "—"
-                views[1].text = holding.companyName ?: "—"
-                views[2].text = money(holding.currentValue)
-                views[3].text = holding.quantity?.let { "$it share${if (it == 1) "" else "s"}" } ?: "—"
+            val row = holdingRows[index]
+
+            if (holding == null) {
+
+                views.forEach {
+                    it.visibility = View.GONE
+                }
+
+                row.visibility = View.GONE
+                row.setOnClickListener(null)
+
+            } else {
+
+                views.forEach {
+                    it.visibility = View.VISIBLE
+                }
+
+                row.visibility = View.VISIBLE
+
+                views[0].text =
+                    holding.symbol ?: "—"
+
+                views[1].text =
+                    holding.companyName ?: "—"
+
+                views[2].text =
+                    money(holding.currentValue)
+
+                views[3].text =
+                    holding.quantity?.let {
+                        "$it share${if (it == 1) "" else "s"}"
+                    } ?: "—"
+
+                row.setOnClickListener {
+
+                    val symbol = holding.symbol
+                        ?: return@setOnClickListener
+
+                    val intent = Intent(
+                        this,
+                        StockDetailsActivity::class.java
+                    ).apply {
+                        putExtra("STOCK_SYMBOL", symbol)
+                    }
+
+                    startActivity(intent)
+                }
             }
         }
+
+
+
 
         val recommendations = state.recommendations
         binding.cardRecommendations.visibility = if (recommendations.isEmpty()) View.GONE else View.VISIBLE
@@ -108,10 +195,13 @@ class PortfolioActivity : AppCompatActivity() {
         return String.format(Locale.US, "%s%.2f%%", if (value >= 0) "+" else "", value)
     }
 
-    private fun showError() {
+    private fun showError(message: String?) {
         AlertDialog.Builder(this)
-            .setMessage("Unable to load portfolio")
-            .setPositiveButton("Retry") { _, _ -> viewModel.loadPortfolio() }
+            .setTitle("Portfolio Error")
+            .setMessage(message ?: "Unable to load portfolio")
+            .setPositiveButton("Retry") { _, _ ->
+                viewModel.loadPortfolio()
+            }
             .setNegativeButton("Cancel", null)
             .show()
     }
@@ -130,6 +220,11 @@ class PortfolioActivity : AppCompatActivity() {
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
             overridePendingTransition(0, 0)
+        }
+
+        binding.tvAllHoldings.setOnClickListener {
+            val intent = Intent(this, AllHoldingsActivity::class.java)
+            startActivity(intent)
         }
 
         binding.cardTransactionHistory.setOnClickListener {

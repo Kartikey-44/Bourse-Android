@@ -46,16 +46,26 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
 
             if (results.any { it.exceptionOrNull()?.message == "UNAUTHORIZED" }) {
                 _state.value = PortfolioState.Unauthorized
-            } else if (results.any { it.isFailure }) {
-                _state.value = PortfolioState.Error("Unable to load portfolio")
-            } else {
-                _state.value = PortfolioState.Success(
-                    portfolio.getOrNull(),
-                    summary.getOrNull(),
-                    holdings.getOrDefault(emptyList()),
-                    recommendations.getOrDefault(emptyList())
-                )
+                return@launch
             }
+
+            val summaryData = summary.getOrNull() ?: PortfolioSummaryResponse(
+                cashBalance = 0.0,
+                totalInvestedValue = 0.0,
+                totalCurrentValue = 0.0,
+                totalPortfolioValue = 0.0,
+                totalProfitLoss = 0.0
+            )
+            val holdingsData = holdings.getOrDefault(emptyList())
+            val recommendationsData = recommendations.getOrDefault(emptyList())
+            val portfolioData = portfolio.getOrNull()
+
+            _state.value = PortfolioState.Success(
+                portfolioData,
+                summaryData,
+                holdingsData,
+                recommendationsData
+            )
         }
     }
 }

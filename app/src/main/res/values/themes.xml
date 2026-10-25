@@ -6,10 +6,32 @@
         <item name="colorPrimaryContainer">@color/bourse_primary_light</item>
 
         <item name="android:colorBackground">@color/bourse_background</item>
+        <item name="android:windowBackground">@color/bourse_background</item>
         <item name="android:navigationBarColor">@color/bourse_background</item>
         <item name="android:statusBarColor">@color/bourse_background</item>
 
         <item name="android:windowLightStatusBar">true</item>
+        <item name="alertDialogTheme">@style/BourseAlertDialogTheme</item>
+        <item name="materialAlertDialogTheme">@style/BourseAlertDialogTheme</item>
+    </style>
+
+    <style name="BourseAlertDialogTheme" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="android:background">@color/bourse_surface</item>
+        <item name="colorSurface">@color/bourse_surface</item>
+        <item name="android:textColorPrimary">@color/bourse_text_primary</item>
+        <item name="android:textColorSecondary">@color/bourse_text_secondary</item>
+        <item name="colorPrimary">@color/bourse_action_text</item>
+        <item name="colorAccent">@color/bourse_action_text</item>
+        <item name="buttonBarPositiveButtonStyle">@style/BourseAlertButtonPositive</item>
+        <item name="buttonBarNegativeButtonStyle">@style/BourseAlertButtonNegative</item>
+    </style>
+
+    <style name="BourseAlertButtonPositive" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/bourse_action_text</item>
+    </style>
+
+    <style name="BourseAlertButtonNegative" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/bourse_text_secondary</item>
     </style>
 
 </resources>

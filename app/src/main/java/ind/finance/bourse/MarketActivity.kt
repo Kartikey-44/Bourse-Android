@@ -40,7 +40,6 @@ class MarketActivity : AppCompatActivity() {
         setupSearch()
         setupObservers()
         setupBottomNavigation()
-
     }
 
     override fun onResume() {
@@ -73,13 +72,39 @@ class MarketActivity : AppCompatActivity() {
                 }
                 is MarketState.Success -> {
                     binding.progressBar.visibility = View.GONE
-                    currentStockList = state.stocks.map { dto ->
+                    currentStockList = state.stocks.map { (dto, trendResp, history) ->
+                        val sortedHistory = if (history.size > 1 && history.first().timestamp > history.last().timestamp) {
+                            history.reversed()
+                        } else {
+                            history
+                        }
+
+                        val changeText: String
+                        val isPositive: Boolean
+
+                        if (sortedHistory.isNotEmpty()) {
+                            val startPrice = sortedHistory.firstOrNull()?.price ?: dto.currentPrice
+                            val endPrice = sortedHistory.lastOrNull()?.price ?: dto.currentPrice
+                            val pctChange = if (startPrice > 0) ((endPrice - startPrice) / startPrice) * 100.0 else 0.0
+                            isPositive = pctChange >= 0
+                            val sign = if (pctChange >= 0) "▲ +" else "▼ "
+                            changeText = String.format("%s%.2f%%", sign, pctChange)
+                        } else {
+                            val trend = trendResp?.trend?.trim()?.uppercase()
+                            isPositive = trend != "DOWN"
+                            changeText = when (trend) {
+                                "UP" -> "▲ UP"
+                                "DOWN" -> "▼ DOWN"
+                                else -> "N/A"
+                            }
+                        }
+
                         StockModel(
                             symbol = dto.symbol,
                             companyName = dto.companyName,
                             price = String.format("₹%,.2f", dto.currentPrice),
-                            change = "N/A",
-                            isPositive = true
+                            change = changeText,
+                            isPositive = isPositive
                         )
                     }
 
@@ -159,7 +184,6 @@ class MarketActivity : AppCompatActivity() {
             val intent = Intent(this, MainActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
-            overridePendingTransition(0, 0)
         }
 
         binding.navMarket.setOnClickListener {
@@ -170,14 +194,12 @@ class MarketActivity : AppCompatActivity() {
             val intent = Intent(this, PortfolioActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
-            overridePendingTransition(0, 0)
         }
 
         binding.navProfile.setOnClickListener {
             val intent = Intent(this, ProfileActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
-            overridePendingTransition(0, 0)
         }
     }
 }

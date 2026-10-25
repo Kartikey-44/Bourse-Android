@@ -1,29 +1,16 @@
 package ind.finance.bourse.data.model
 
-import com.google.gson.annotations.SerializedName
+import com.google.gson.annotations.JsonAdapter
+import ind.finance.bourse.data.remote.TimestampDeserializer
 
 data class TransactionDto(
-    @SerializedName("id", alternate = ["transactionId", "_id"])
-    val id: String?,
-
-    @SerializedName("type", alternate = ["action", "tradeType"])
-    val type: String?,
-
-    @SerializedName("symbol", alternate = ["stockSymbol", "ticker"])
-    val symbol: String?,
-
-    @SerializedName("shares", alternate = ["quantity", "units"])
-    val shares: Int?,
-
-    @SerializedName("pricePerShare", alternate = ["price", "executionPrice"])
-    val pricePerShare: Double?,
-
-    @SerializedName("totalAmount", alternate = ["total", "amount"])
-    val totalAmount: Double?,
-
-    @SerializedName("dateTime", alternate = ["date", "timestamp", "createdAt"])
-    val dateTime: String?,
-
-    @SerializedName("status")
-    val status: String?
+    val tradeId: Long,
+    val symbol: String,
+    val action: String,
+    val quantity: Int,
+    val executionPrice: Double,
+    val totalAmount: Double,
+    val status: String,
+    @JsonAdapter(TimestampDeserializer::class)
+    val timestamp: String
 )

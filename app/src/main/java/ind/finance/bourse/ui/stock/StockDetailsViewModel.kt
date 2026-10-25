@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import ind.finance.bourse.data.local.TokenManager
+import ind.finance.bourse.data.model.PriceHistoryPoint
 import ind.finance.bourse.data.model.StockResponse
 import ind.finance.bourse.data.model.StockTrendResponse
 import ind.finance.bourse.data.remote.ApiClient
@@ -16,7 +17,8 @@ sealed class StockDetailsState {
     object Loading : StockDetailsState()
     data class Success(
         val stock: StockResponse,
-        val trend: StockTrendResponse?
+        val trend: StockTrendResponse?,
+        val history: List<PriceHistoryPoint>
     ) : StockDetailsState()
     data class Error(val message: String) : StockDetailsState()
     object Unauthorized : StockDetailsState()
@@ -52,7 +54,17 @@ class StockDetailsViewModel(application: Application) : AndroidViewModel(applica
                 return@launch
             }
 
-            _state.value = StockDetailsState.Success(stock, trendResult.getOrNull())
+            val historyResult = repository.getStockPriceHistory(symbol, 100)
+            if (historyResult.exceptionOrNull()?.message == "UNAUTHORIZED") {
+                _state.value = StockDetailsState.Unauthorized
+                return@launch
+            }
+
+            _state.value = StockDetailsState.Success(
+                stock,
+                trendResult.getOrNull(),
+                historyResult.getOrDefault(emptyList())
+            )
         }
     }
 }
